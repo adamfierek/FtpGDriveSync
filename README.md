@@ -27,3 +27,4 @@
 * Exception handling
 * More accurate GDrive file listing (dir by dir)
 * Code refactoring
+* Handle files bigger than 50M (API limitation)
