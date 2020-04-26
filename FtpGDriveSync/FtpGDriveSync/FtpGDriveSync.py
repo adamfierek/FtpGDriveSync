@@ -139,6 +139,7 @@ for file in ftplist:
 
 #Close FTP
 ftp.close()
+print('Cleaning tmp files')
 time.sleep(20)
 shutil.rmtree(tmpdir)
 #Print summary
