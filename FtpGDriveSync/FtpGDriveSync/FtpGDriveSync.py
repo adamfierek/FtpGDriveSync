@@ -87,7 +87,7 @@ def uploadFile(local, remote):
     'name': local.split('/')[-1],
     'parents': [dirID]
     }
-    media = MediaFileUpload(local)
+    media = MediaFileUpload(local, resumable=True)
     try:
         gservice.files().create(body=file_metadata, media_body=media).execute()
     except:
@@ -96,19 +96,21 @@ def uploadFile(local, remote):
 
 #Recursive function for getting FTP file list
 def getFTPList(dir):
-	for name, facts in ftp.mlsd(dir):
-		if '@' in name or name == '.': 
-			continue
-		if facts['type'] == 'file' and name not in gdrivelist:
-			ftplist.append(dir + '/' + name)
-		elif facts['type'] == 'dir':
-			getFTPList(dir + '/' + name)
+    filelist = []
+    for name, facts in ftp.mlsd(dir):
+        if '@' in name or name == '.': 
+            continue
+        if facts['type'] == 'file' and name not in gdrivelist:
+            filelist.append(dir + '/' + name)
+        elif facts['type'] == 'dir':
+            filelist.extend(getFTPList(dir + '/' + name))
+    return filelist
 
 #Open FTP and check files
 ftp = FTP(config['FTP']['HOST'])
 ftp.encoding = 'utf-8'
 ftp.login(config['FTP']['USERNAME'],config['FTP']['PASSWORD'])
-getFTPList(config['FTP']['ROOTDIR'])
+ftplist = getFTPList(config['FTP']['ROOTDIR'])
 print('Got FTP file list. '+str(len(ftplist))+' to syncrhonze.')
 
 #Download each missing file and upload to Google Drive
@@ -120,13 +122,14 @@ if(path.exists(tmpdir)):
 os.mkdir(tmpdir)
 for file in ftplist:
     filename = tmpdir+"/"+file.split("/")[-1]
+    print("File: "+filename+" Downloading ", end='')
     ftp.retrbinary("RETR " + file ,open(filename, 'wb').write)
-    print("Uploading: "+filename, end = '')
+    print("- OK. Uploading ", end = '')
     res = uploadFile(filename, file)
     if res:
-        print(" OK")
+        print("- OK")
     else:
-        print(" FAIL")
+        print("- FAIL")
         errors=errors+1
     counter=counter+1
 
