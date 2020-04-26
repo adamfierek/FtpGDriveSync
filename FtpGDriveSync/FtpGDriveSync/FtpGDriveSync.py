@@ -112,7 +112,7 @@ ftp.encoding = 'utf-8'
 ftp.login(config['FTP']['USERNAME'],config['FTP']['PASSWORD'])
 ftplist = getFTPList(config['FTP']['ROOTDIR'])
 downloadCount = len(ftplist)
-print('Got FTP file list. '+str(downloadCount)+' to syncrhonze.')
+print('Got FTP file list. '+str(downloadCount)+' to syncrhonize.')
 
 if downloadCount == 0:
     exit(0)
