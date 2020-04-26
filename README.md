@@ -26,4 +26,3 @@
 ## TO DO:
 * Exception handling
 * Code refactoring
-* Handle files bigger than 50M (API limitation)
