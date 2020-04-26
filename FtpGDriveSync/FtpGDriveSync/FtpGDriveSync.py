@@ -30,25 +30,37 @@ print('Created GDrive client')
 #Empty trashed items
 gservice.files().emptyTrash().execute()
 print('Cleaned GDrive trash bin')
-#Get list of files on Google Drive
-page_token = None
-while True:
-    response = gservice.files().list(q="mimeType!='application/vnd.google-apps.folder'",
-                                     fields='nextPageToken, files(id, name)',
-                                     spaces='drive',
-                                     pageToken=page_token).execute()
-    for file in response.get('files', []):
-        gdrivelist.append(file.get('name'))
-    page_token = response.get('nextPageToken', None)
-    if page_token is None:
-        break
-print('Got GDrive file list ('+str(len(gdrivelist))+')')
-#Function for search and create GDrive folder 
-def getDirectoryID(path):
-    response = gservice.files().list(q="mimeType='application/vnd.google-apps.folder' and name='"+config['GDrive']['ROOTDIR']+"'",
+
+#Get ID of root GDrive directory (by name) 
+response = gservice.files().list(q="mimeType='application/vnd.google-apps.folder' and name='"+config['GDrive']['ROOTDIR']+"'",
                                      fields='files(id, name)',
                                      pageSize=1).execute()
-    rootId = response.get('files', [])[0]['id'];
+rootGDrive = response.get('files', [])[0]['id'];
+
+#Get list of files on Google Drive (dir by dir)
+def listGDriveFiles(dirId):
+    filelist=[]
+    page_token = None
+    while True:
+        response = gservice.files().list(q="'"+dirId+"' in parents",
+                                         fields='files(id, name, mimeType)',
+                                         spaces='drive',
+                                         pageToken=page_token).execute()
+        for file in response.get('files', []):
+            if file.get('mimeType') == 'application/vnd.google-apps.folder':
+                filelist.extend(listGDriveFiles(file.get('id')))
+            else:
+                filelist.append(file.get('name'))
+        page_token = response.get('nextPageToken', None)
+        if page_token is None:
+            return filelist
+    
+gdrivelist = listGDriveFiles(rootGDrive)
+print('Got GDrive file list ('+str(len(gdrivelist))+')')
+
+#Function for search and create GDrive folder 
+def getDirectoryID(path):
+    rootId = rootGDrive
     names = path.split('/')
     names.remove(config['FTP']['ROOTDIR'])
     for name in names[:-1]:
